@@ -1,0 +1,40 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <Version>1.0.0.1</Version>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="token3\**" />
+    <Content Remove="token3\**" />
+    <EmbeddedResource Remove="token3\**" />
+    <None Remove="token3\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Remove="chat_history.json" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove=".gitattributes" />
+    <None Remove=".gitignore" />
+    <None Remove="log.txt" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.4" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.4" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="9.0.4" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="8.1.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\AIRobot\AIRobot.csproj" />
+    <ProjectReference Include="..\AmSecrets\AmSecrets.csproj" />
+    <ProjectReference Include="..\AmTools\AmTools.csproj" />
+  </ItemGroup>
+
+</Project>
