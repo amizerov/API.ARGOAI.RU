@@ -2,20 +2,12 @@
 
 public class Features
 {
-    public static async Task<List<Feature>> LoadFromDb()
+    public static async Task<List<ArgoDb.Feature>> LoadFromDb()
     {
-        using var db = new Db();
+        using var db = new ArgoDb.Db();
 
         var features = await db.Features.ToListAsync();
 
         return features;
     }
-}
-
-public class Feature
-{
-    public int Id { get; set; }
-    public string? Title { get; set; }
-    public string? Descr { get; set; }
-    public string? Icon { get; set; }
 }

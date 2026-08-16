@@ -4,6 +4,8 @@ using System.Text.Json;
 using System.Text;
 using AmSecrets;
 using System.Reflection;
+using ArgoDb;
+using System.Collections.Concurrent;
 
 namespace AIRobot
 {
@@ -14,44 +16,60 @@ namespace AIRobot
         static int _maxTokens = 800;
         static double _temperature = 0.99;
 
-        const string HistoryFile = "chat_history.json";
         const string SysPromptFile = "SysPrompt.txt";
+        static readonly ConcurrentDictionary<string, SemaphoreSlim> SessionLocks = new();
 
         static string _apiKey = Secrets.OpenAI_ApiKey;
         const string OpenAiApiUrl = "https://api.openai.com/v1/chat/completions";
 
-        public static async Task<string> GetAnswer(string userMessage)
+        public static async Task<string> GetAnswer(
+            string userMessage,
+            string sessionKey = ChatHistoryRepository.DefaultSessionKey,
+            CancellationToken cancellationToken = default)
         {
             var commandResponse = ProcessCommands(userMessage);
             if (commandResponse.Length > 0) return commandResponse;
 
-            // Добавление системного промпта перед отправкой запроса
-            var systemPrompt = new Message
+            var sessionLock = SessionLocks.GetOrAdd(sessionKey, _ => new SemaphoreSlim(1, 1));
+            await sessionLock.WaitAsync(cancellationToken);
+            try
             {
-                Role = "system",
-                Content = LoadSysPrompt()
-            };
+                // Системный промпт не храним в истории: он всегда берётся из файла.
+                var systemPrompt = new Message
+                {
+                    Role = "system",
+                    Content = LoadSysPrompt()
+                };
 
-            List<Message> conversationHistory = LoadHistory();
-            conversationHistory.Add(new(){ Role = "user", Content = userMessage });
+                List<Message> conversationHistory = await LoadHistory(sessionKey, cancellationToken);
+                var userMessageRow = new Message { Role = "user", Content = userMessage };
+                conversationHistory.Add(userMessageRow);
 
-            var messagesToSend = new List<Message> { systemPrompt };
-            messagesToSend.AddRange(conversationHistory);
+                var messagesToSend = new List<Message> { systemPrompt };
+                messagesToSend.AddRange(conversationHistory);
 
-            var request = new ChatRequest
+                var request = new ChatRequest
+                {
+                    Model = _model,
+                    Messages = messagesToSend,
+                    MaxTokens = _maxTokens,
+                    Temperature = _temperature
+                };
+
+                var answer = await MakeRequest(request, cancellationToken);
+                var assistantMessageRow = new Message { Role = "assistant", Content = answer };
+
+                await AppendHistory(
+                    new[] { userMessageRow, assistantMessageRow },
+                    sessionKey,
+                    cancellationToken);
+
+                return answer;
+            }
+            finally
             {
-                Model = _model,
-                Messages = messagesToSend,
-                MaxTokens = _maxTokens,
-                Temperature = _temperature
-            };
-
-            var answer = await MakeRequest(request);
-
-            conversationHistory.Add(new Message { Role = "assistant", Content = answer });
-            SaveHistory(conversationHistory);
-
-            return answer;
+                sessionLock.Release();
+            }
         }
 
         static async Task<string> MakeRequest(ChatRequest request, CancellationToken cancellationToken = default)
@@ -78,39 +96,36 @@ namespace AIRobot
             return answer;
         }
 
-        static List<Message> GetDefaultHistory()
+        static async Task AppendHistory(
+            IEnumerable<Message> messages,
+            string sessionKey,
+            CancellationToken cancellationToken)
         {
-            return new List<Message>
-            {
-                new Message
+            var rows = messages
+                .Where(x => !string.IsNullOrWhiteSpace(x.Role) && !string.IsNullOrWhiteSpace(x.Content))
+                .Select(x => new ChatMessage
                 {
-                    Role = "system",
-                    Content = File.ReadAllText("SysPrompt.txt")
-                }
-            };
+                    Role = x.Role!,
+                    Content = x.Content!
+                });
+
+            await ChatHistoryRepository.AppendAsync(rows, sessionKey, cancellationToken);
         }
 
-        static void SaveHistory(List<Message> conversationHistory)
+        static async Task<List<Message>> LoadHistory(
+            string sessionKey,
+            CancellationToken cancellationToken)
         {
-            var options = new JsonSerializerOptions { WriteIndented = true };
-            File.WriteAllText(HistoryFile, JsonSerializer.Serialize(conversationHistory, options));
-        }
-
-        static List<Message> LoadHistory()
-        {
-            try
-            {
-                if (File.Exists(HistoryFile))
+            var rows = await ChatHistoryRepository.LoadAsync(sessionKey, cancellationToken);
+            return rows
+                // Старые system-записи могли попасть в БД при переносе из JSON.
+                .Where(x => x.Role is "user" or "assistant")
+                .Select(x => new Message
                 {
-                    var json = File.ReadAllText(HistoryFile);
-                    return JsonSerializer.Deserialize<List<Message>>(json) ?? GetDefaultHistory();
-                }
-            }
-            catch
-            {
-                File.WriteAllText("log.txt", "Error loading history");
-            }
-            return GetDefaultHistory();
+                    Role = x.Role,
+                    Content = x.Content
+                })
+                .ToList();
         }
 
         static string LoadSysPrompt()

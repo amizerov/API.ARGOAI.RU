@@ -1,4 +1,4 @@
-#region initapp
+ï»¿#region initapp
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -6,22 +6,22 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
     {
-        policy.AllowAnyOrigin() // Ðàçðåøèòü çàïðîñû ñ ëþáûõ èñòî÷íèêîâ
-              .AllowAnyHeader() // Ðàçðåøèòü ëþáûå çàãîëîâêè
-              .AllowAnyMethod(); // Ðàçðåøèòü ëþáûå HTTP-ìåòîäû
+        policy.AllowAnyOrigin() // Ð Ð°Ð·Ñ€ÐµÑˆÐ¸Ñ‚ÑŒ Ð·Ð°Ð¿Ñ€Ð¾ÑÑ‹ Ñ Ð»ÑŽÐ±Ñ‹Ñ… Ð¸ÑÑ‚Ð¾Ñ‡Ð½Ð¸ÐºÐ¾Ð²
+              .AllowAnyHeader() // Ð Ð°Ð·Ñ€ÐµÑˆÐ¸Ñ‚ÑŒ Ð»ÑŽÐ±Ñ‹Ðµ Ð·Ð°Ð³Ð¾Ð»Ð¾Ð²ÐºÐ¸
+              .AllowAnyMethod(); // Ð Ð°Ð·Ñ€ÐµÑˆÐ¸Ñ‚ÑŒ Ð»ÑŽÐ±Ñ‹Ðµ HTTP-Ð¼ÐµÑ‚Ð¾Ð´Ñ‹
     });
 });
 
-// Äîáàâëåíèå Swagger
+// Ð”Ð¾Ð±Ð°Ð²Ð»ÐµÐ½Ð¸Ðµ Swagger
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-// Âêëþ÷åíèå CORS
+// Ð’ÐºÐ»ÑŽÑ‡ÐµÐ½Ð¸Ðµ CORS
 app.UseCors("AllowAll");
 
-// Âêëþ÷åíèå Swagger â ðåæèìå ðàçðàáîòêè
+// Ð’ÐºÐ»ÑŽÑ‡ÐµÐ½Ð¸Ðµ Swagger Ð² Ñ€ÐµÐ¶Ð¸Ð¼Ðµ Ñ€Ð°Ð·Ñ€Ð°Ð±Ð¾Ñ‚ÐºÐ¸
 //if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -30,14 +30,13 @@ app.UseCors("AllowAll");
 #endregion
 
 #region mapping
-    // API ìåòîä äëÿ ïîëó÷åíèÿ ôè÷
+    // API Ð¼ÐµÑ‚Ð¾Ð´ Ð´Ð»Ñ Ð¿Ð¾Ð»ÑƒÑ‡ÐµÐ½Ð¸Ñ Ñ„Ð¸Ñ‡
     app.MapGet("/features", async () =>
     {
         var res = await Features.LoadFromDb();
         return Results.Json(res);
     })
-    .WithName("GetFeatures") // Äîáàâëåíèå èìåíè äëÿ Swagger
-    .WithOpenApi(); // Ãåíåðàöèÿ äîêóìåíòàöèè äëÿ ýòîãî ìåòîäà
+    .WithName("GetFeatures"); // Ð”Ð¾Ð±Ð°Ð²Ð»ÐµÐ½Ð¸Ðµ Ð¸Ð¼ÐµÐ½Ð¸ Ð´Ð»Ñ Swagger
 
     app.MapPost("/chat", async (ChatRequest request) =>
     {
@@ -48,7 +47,7 @@ app.UseCors("AllowAll");
         }
         catch (Exception ex)
         {
-            // ÷èòàåìîå ñîîáùåíèå êëèåíòó, íî íå 500
+            // Ñ‡Ð¸Ñ‚Ð°ÐµÐ¼Ð¾Ðµ ÑÐ¾Ð¾Ð±Ñ‰ÐµÐ½Ð¸Ðµ ÐºÐ»Ð¸ÐµÐ½Ñ‚Ñƒ, Ð½Ð¾ Ð½Ðµ 500
             return Results.BadRequest(new
             {
                 status = "error",
@@ -56,8 +55,7 @@ app.UseCors("AllowAll");
             });
         }
     })
-    .WithName("PostChatAnswer")
-    .WithOpenApi();
+    .WithName("PostChatAnswer");
 
     app.MapGet("/chat_face", () =>
     {
@@ -69,25 +67,22 @@ app.UseCors("AllowAll");
 
         return Results.File(imagePath, "image/jpeg");
     })
-    .WithName("GetFaceImage")
-    .WithOpenApi();
+    .WithName("GetFaceImage");
 
     app.MapGet("/chat_title", () =>
     {
         var chatTitle = AmSecrets.Secrets.ChatTitle;
         return Results.Text(chatTitle, "text/plain");
     })
-    .WithName("GetChatTitle")
-    .WithOpenApi();
+    .WithName("GetChatTitle");
 
-// API ìåòîä äëÿ îòïðàâêè ñîîáùåíèÿ ïî ïî÷òå
+// API Ð¼ÐµÑ‚Ð¾Ð´ Ð´Ð»Ñ Ð¾Ñ‚Ð¿Ñ€Ð°Ð²ÐºÐ¸ ÑÐ¾Ð¾Ð±Ñ‰ÐµÐ½Ð¸Ñ Ð¿Ð¾ Ð¿Ð¾Ñ‡Ñ‚Ðµ
 app.MapPost("/mail", async (MailRequest formData) =>
         {
             var res = await formData.SendMail();
             return Results.Json(res);
         })
-    .WithName("SendMail")
-    .WithOpenApi();
+    .WithName("SendMail");
 #endregion
 
 app.Run();

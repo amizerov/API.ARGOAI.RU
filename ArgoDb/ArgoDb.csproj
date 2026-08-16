@@ -1,21 +1,18 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <Version>1.0.0.7</Version>
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\AmSecrets\AmSecrets.csproj" />
-    <ProjectReference Include="..\ArgoDb\ArgoDb.csproj" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.11" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.11" />
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="SysPrompt.txt">
-      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
-    </None>
+    <ProjectReference Include="..\AmSecrets\AmSecrets.csproj" />
   </ItemGroup>
 
 </Project>
