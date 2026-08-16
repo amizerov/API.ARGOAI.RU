@@ -16,7 +16,7 @@ namespace AIRobot
         static int _maxTokens = 800;
         static double _temperature = 0.99;
 
-        const string SysPromptFile = "SysPrompt.txt";
+        static readonly string SysPromptFile = ResolveSysPromptPath();
         static readonly ConcurrentDictionary<string, SemaphoreSlim> SessionLocks = new();
 
         static string _apiKey = Secrets.OpenAI_ApiKey;
@@ -126,6 +126,35 @@ namespace AIRobot
                     Content = x.Content
                 })
                 .ToList();
+        }
+
+        static string ResolveSysPromptPath()
+        {
+            var candidates = new[]
+            {
+                Path.Combine(AppContext.BaseDirectory, "SysPrompt.txt"),
+                Path.Combine(AppContext.BaseDirectory, "AIRobot", "SysPrompt.txt"),
+                Path.Combine(Directory.GetCurrentDirectory(), "SysPrompt.txt"),
+                Path.Combine(Directory.GetCurrentDirectory(), "AIRobot", "SysPrompt.txt")
+            };
+
+            foreach (var path in candidates)
+            {
+                if (File.Exists(path))
+                    return path;
+            }
+
+            var dir = new DirectoryInfo(AppContext.BaseDirectory);
+            while (dir != null)
+            {
+                var fallback = Path.Combine(dir.FullName, "AIRobot", "SysPrompt.txt");
+                if (File.Exists(fallback))
+                    return fallback;
+
+                dir = dir.Parent;
+            }
+
+            return Path.Combine(AppContext.BaseDirectory, "SysPrompt.txt");
         }
 
         static string LoadSysPrompt()
